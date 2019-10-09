@@ -269,12 +269,8 @@ namespace ATree
             AllItems.Add(a);
         }
 
-        private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
+        void SaveTree(string path)
         {
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Filter = "*.xml|*.xml";
-            if (sfd.ShowDialog() != DialogResult.OK) return;
-
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("<?xml version=\"1.0\"?>");
             sb.AppendLine("<root>");
@@ -292,21 +288,12 @@ namespace ATree
             sb.AppendLine("</root>");
 
 
-            File.WriteAllText(sfd.FileName, sb.ToString());
-
+            File.WriteAllText(path, sb.ToString());
         }
 
-
-        public float ParseFloat(string str)
+        void LoadTree(string path)
         {
-            return float.Parse(str.Replace(",", "."), CultureInfo.InvariantCulture);
-        }
-        private void LoadToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog sfd = new OpenFileDialog();
-            sfd.Filter = "*.xml|*.xml";
-            if (sfd.ShowDialog() != DialogResult.OK) return;
-            var doc = XDocument.Load(sfd.FileName);
+            var doc = XDocument.Load(path);
             AllItems.Clear();
 
             foreach (var item in doc.Descendants("item"))
@@ -333,6 +320,29 @@ namespace ATree
             }
         }
 
+        private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = "*.xml|*.xml";
+            if (sfd.ShowDialog() != DialogResult.OK) return;
+
+            SaveTree(sfd.FileName);
+        }
+
+
+        public float ParseFloat(string str)
+        {
+            return float.Parse(str.Replace(",", "."), CultureInfo.InvariantCulture);
+        }
+        private void LoadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog sfd = new OpenFileDialog();
+            sfd.Filter = "*.xml|*.xml";
+            if (sfd.ShowDialog() != DialogResult.OK) return;
+
+            LoadTree(sfd.FileName);
+        }
+
         private void ClearToolStripMenuItem_Click(object sender, EventArgs e)
         {
             AllItems.Clear();
@@ -342,6 +352,16 @@ namespace ATree
         {
             var a = new AItem() { Name = "new root1" };
             AllItems.Add(a);
+        }
+
+        private void QuickLoadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LoadTree("tree.xml");
+        }
+
+        private void QuickSaveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveTree("tree.xml");
         }
 
         public float sx;
