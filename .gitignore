@@ -1,3 +1,4 @@
 .vs/
+*notpublish*
 bin/
 obj/

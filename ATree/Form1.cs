@@ -16,6 +16,11 @@ namespace ATree
         public Form1()
         {
             InitializeComponent();
+            Config.Load();
+            if (Config.QuickLoadOnStartup)
+            {
+                LoadTree("tree.xml");
+            }
             bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             gr = Graphics.FromImage(bmp);
             SizeChanged += Form1_SizeChanged;
@@ -53,7 +58,7 @@ namespace ATree
         float origsx, origsy;
         bool isDrag = false;
         bool isDrag2 = false;
-        public void Update()
+        public void UpdateDrawParams()
         {
             if (isDrag)
             {
@@ -167,7 +172,7 @@ namespace ATree
             }
 
             #endregion
-            Update();
+            UpdateDrawParams();
             gr.Clear(Color.White);
 
             gr.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -247,9 +252,10 @@ namespace ATree
 
         public float zoom = 1;
 
-        private void DeleteSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+        public void DeleteSelected()
         {
             if (selected == null) return;
+            if (MessageBox.Show("Delete node: " + selected.Name + "?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
             AllItems.Remove(selected);
             foreach (var item in selected.Parents)
             {
@@ -260,11 +266,32 @@ namespace ATree
                 item.Parents.Remove(selected);
             }
         }
+        private void DeleteSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            DeleteSelected();
+        }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Delete)
+            {
+                DeleteSelected();
+            }
+            if (keyData == Keys.Insert)
+            {
+                AddChildToSelected();
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
         private void AddChildToSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            AddChildToSelected();
+        }
+
+        public void AddChildToSelected()
+        {
             if (selected == null) return;
-            var a = new AItem() { Name = "new node1" };
+            var a = new AItem() { Name = "new node1", Position = new PointF(selected.Position.X + selected.Radius * 2, selected.Position.Y) };
             selected.AddChild(a);
             AllItems.Add(a);
         }
@@ -273,7 +300,8 @@ namespace ATree
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("<?xml version=\"1.0\"?>");
-            sb.AppendLine("<root>");
+
+            sb.AppendLine($"<root sx=\"{sx.ToString().Replace(",", ".")}\" sy=\"{sy.ToString().Replace(",", ".")}\" zoom=\"{zoom.ToString().Replace(",", ".")}\">");
             foreach (var item in AllItems)
             {
                 sb.AppendLine($"<item id=\"{item.Id}\" name=\"{item.Name}\" progress=\"{item.Progress}\" pos=\"{item.Position.X};{item.Position.Y}\" radius=\"{item.Radius}\">");
@@ -295,6 +323,10 @@ namespace ATree
         {
             var doc = XDocument.Load(path);
             AllItems.Clear();
+            var root = doc.Descendants("root").First();
+            sx = float.Parse(root.Attribute("sx").Value, CultureInfo.InvariantCulture);
+            sy = float.Parse(root.Attribute("sy").Value, CultureInfo.InvariantCulture);
+            zoom = float.Parse(root.Attribute("zoom").Value, CultureInfo.InvariantCulture);
 
             foreach (var item in doc.Descendants("item"))
             {
@@ -362,6 +394,26 @@ namespace ATree
         private void QuickSaveToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SaveTree("tree.xml");
+        }
+
+        private void ToolStripButton2_Click(object sender, EventArgs e)
+        {
+            SettingsForm s = new SettingsForm();
+            s.StartPosition = FormStartPosition.CenterParent;
+            s.ShowDialog();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (Config.QuickSaveOnClosing)
+            {
+                SaveTree("tree.xml");
+            }
+        }
+
+        private void ToolStripButton1_Click(object sender, EventArgs e)
+        {
+
         }
 
         public float sx;
