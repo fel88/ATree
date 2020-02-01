@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -21,9 +22,8 @@ namespace ATree
             {
                 LoadTree("tree.xml");
             }
-            bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
-            gr = Graphics.FromImage(bmp);
-            SizeChanged += Form1_SizeChanged;
+          
+            
             MouseWheel += Form1_MouseWheel;
             pictureBox1.MouseMove += PictureBox1_MouseMove;
 
@@ -31,7 +31,33 @@ namespace ATree
             pictureBox1.MouseDown += PictureBox1_MouseDown;
 
             //SampleTree();
+            tb.Width = 100;
+            tb.Height = 20;
+            tb.KeyUp += Tb_KeyUp;
+
+            ctx.Init(pictureBox1);
+
+
         }
+
+        private void Tb_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                if (string.IsNullOrEmpty(tb.Text))
+                {
+                    MessageBox.Show("Empty string.", Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                tb.Parent.Controls.Remove(tb);
+                if (ctx.selected is TodoList td)
+                {
+                    td.Items.Add(new TodoItem() { Text = tb.Text });
+                }
+            }
+        }
+
+        TextBox tb = new TextBox();
 
         public void SampleTree()
         {
@@ -64,8 +90,8 @@ namespace ATree
             {
                 var p = pictureBox1.PointToClient(Cursor.Position);
 
-                sx = origsx + ((p.X - startx) / zoom);
-                sy = origsy + (-(p.Y - starty) / zoom);
+                ctx.sx = origsx + ((p.X - startx) / ctx.zoom);
+                ctx.sy = origsy + (-(p.Y - starty) / ctx.zoom);
             }
         }
 
@@ -73,26 +99,26 @@ namespace ATree
         {
 
             var pos = pictureBox1.PointToClient(Cursor.Position);
-            var p = Transform(pos);
+            var p = ctx.Transform(pos);
 
             if (e.Button == MouseButtons.Middle)
             {
-                if (selected != hovered && selected != null && hovered != null)
+                if (selected != ctx.hovered && selected != null && ctx.hovered != null)
                 {
-                    if (selected.Parents.Contains(hovered))
+                    if (selected.Parents.Contains(ctx.hovered))
                     {
-                        selected.Parents.Remove(hovered);
-                        hovered.Childs.Remove(selected);
+                        selected.Parents.Remove(ctx.hovered);
+                        ctx.hovered.Childs.Remove(selected);
                     }
                     else
-                    if (selected.Childs.Contains(hovered))
+                    if (selected.Childs.Contains(ctx.hovered))
                     {
-                        selected.Childs.Remove(hovered);
-                        hovered.Parents.Remove(selected);
+                        selected.Childs.Remove(ctx.hovered);
+                        ctx.hovered.Parents.Remove(selected);
                     }
                     else
                     {
-                        hovered.AddChild(selected);
+                        ctx.hovered.AddChild(selected);
                     }
                 }
 
@@ -100,157 +126,106 @@ namespace ATree
             }
             if (e.Button == MouseButtons.Left)
             {
-                captured = hovered;
-                selected = hovered;
-                propertyGrid1.SelectedObject = captured;
-                isDrag2 = true;
+                var ev = new UiMouseEvent() { Position = ctx.GetPos() };
+                foreach (var item in AllItems)
+                {
+                    item.Event(ev);
+                    if (ev.Handled) break;
+                }
+                if (!ev.Handled)
+                {
+                    captured = ctx.hovered;
+                    selected = ctx.hovered;
+                    propertyGrid1.SelectedObject = captured;
+                    isDrag2 = true;
+                }
             }
             if (e.Button == MouseButtons.Right)
             {
                 isDrag = true;
                 startx = pos.X;
                 starty = pos.Y;
-                origsx = sx;
-                origsy = sy;
+                origsx = ctx.sx;
+                origsy = ctx.sy;
             }
         }
 
         private void Form1_MouseWheel(object sender, MouseEventArgs e)
         {
-            float zold = zoom;
-            if (e.Delta > 0) { zoom *= 1.5f; ; }
-            else { zoom *= 0.5f; }
-            if (zoom < 0.08) { zoom = 0.08f; }
-            if (zoom > 10) { zoom = 10f; }
+            float zold = ctx.zoom;
+            if (e.Delta > 0) { ctx.zoom *= 1.5f; ; }
+            else { ctx.zoom *= 0.5f; }
+            if (ctx.zoom < 0.08) { ctx.zoom = 0.08f; }
+            if (ctx.zoom > 10) { ctx.zoom = 10f; }
 
             var pos = pictureBox1.PointToClient(Cursor.Position);
 
-            sx = -(pos.X / zold - sx - pos.X / zoom);
-            sy = (pos.Y / zold + sy - pos.Y / zoom);
+            ctx.sx = -(pos.X / zold - ctx.sx - pos.X / ctx.zoom);
+            ctx.sy = (pos.Y / zold + ctx.sy - pos.Y / ctx.zoom);
         }
 
 
 
-        private void Form1_SizeChanged(object sender, EventArgs e)
-        {
-            bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
-            gr = Graphics.FromImage(bmp);
-        }
+  
 
-        Bitmap bmp;
-        Graphics gr;
 
-        public PointF GetPos()
-        {
-            var pos = pictureBox1.PointToClient(Cursor.Position);
-            var posx = (pos.X / zoom - sx);
-            var posy = (-pos.Y / zoom - sy);
 
-            return new PointF(posx, posy);
-        }
+     
         public List<AItem> AllItems = new List<AItem>();
         AItem captured = null;
-        AItem selected = null;
+
+
+        PointF lastCenter;
         private void Timer1_Tick(object sender, EventArgs e)
         {
 
-            var pos = GetPos();
+            var pos = ctx.GetPos();
             if (captured != null && isDrag2)
             {
                 captured.Position = pos;
             }
 
             #region hovered check
-            hovered = null;
+            ctx.hovered = null;
             foreach (var item in AllItems)
             {
-                if (item.Position.DistTo(pos) < item.Radius)
+                if (item.IsHovered(pos))
                 {
-                    hovered = item;
+                    ctx.hovered = item;
                     break;
                 }
+
             }
 
             #endregion
             UpdateDrawParams();
-            gr.Clear(Color.White);
-
-            gr.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            ctx.gr.Clear(Color.White);
+            lastCenter = ctx.Transform(new PointF(pictureBox1.Width / 2, pictureBox1.Height / 2));
+            ctx.gr.SmoothingMode = SmoothingMode.AntiAlias;
             foreach (var item in AllItems.Where(z => z.Parents.Count == 0))
             {
-                DrawRec(item);
+                item.Draw(ctx);
             }
 
-            pictureBox1.Image = bmp;
+            pictureBox1.Image = ctx.bmp;
         }
+        public DrawingContext ctx = new DrawingContext();
 
-        public virtual PointF Transform(PointF p1)
+
+
+
+
+        public AItem selected
         {
-            return new PointF((p1.X + sx) * zoom, -1 * (p1.Y + sy) * zoom);
-        }
-
-        AItem hovered = null;
-        public void DrawRec(AItem item)
-        {
-
-            var pos = Transform(item.Position);
-            foreach (var aitem in item.Childs)
+            get
             {
-                var pos2 = Transform(aitem.Position);
-                gr.DrawLine(Pens.Black, pos.X, pos.Y, pos2.X, pos2.Y);
-                var dx = aitem.Position.X - item.Position.X;
-                var dy = aitem.Position.Y - item.Position.Y;
-                var len = item.Position.DistTo(aitem.Position);
-                dx /= len;
-                dy /= len;
-
-                float arad = 5;
-                var px = item.Position.X + dx * (item.Radius + arad);
-                var py = item.Position.Y + dy * (item.Radius + arad);
-                var tr = Transform(new PointF(px, py));
-                px = tr.X;
-                py = tr.Y;
-                arad *= zoom;
-                gr.FillEllipse(Brushes.Yellow, px - arad, py - arad, arad * 2, arad * 2);
-                gr.DrawEllipse(Pens.Black, px - arad, py - arad, arad * 2, arad * 2);
+                return ctx.selected;
             }
-
-            var rad = item.Radius * zoom;
-            var br = item.Brush;
-            if (item == hovered)
+            set
             {
-                br = Brushes.LightBlue;
-
-            }
-            if (item == selected)
-            {
-                gr.DrawRectangle(Pens.Red, pos.X - rad, pos.Y - rad, rad * 2, rad * 2);
-            }
-
-            gr.FillEllipse(br, pos.X - rad, pos.Y - rad, rad * 2, rad * 2);
-
-            if (item.IsProgress)
-            {
-                gr.FillPie(Brushes.LightGreen, pos.X - rad, pos.Y - rad, rad * 2, rad * 2, 0, (item.Progress / 100f) * 360f);
-                gr.DrawPie(Pens.Gray, pos.X - rad, pos.Y - rad, rad * 2, rad * 2, 0, (item.Progress / 100f) * 360f);
-            }
-            gr.DrawEllipse(Pens.Black, pos.X - rad, pos.Y - rad, rad * 2, rad * 2);
-            var font = new Font("Arial", 8);
-            var ms = gr.MeasureString(item.Name, font);
-            gr.DrawString(item.Name, font, Brushes.Black, pos.X - ms.Width / 2, pos.Y - ms.Height);
-            var pstr = (int)item.Progress + "%";
-            var ms2 = gr.MeasureString(pstr, font);
-            gr.DrawString(pstr, font, Brushes.Black, pos.X - ms2.Width / 2, pos.Y - ms2.Height / 2 + 10);
-
-            foreach (var aitem in item.Childs)
-            {
-                DrawRec(aitem);
+                ctx.selected = value;
             }
         }
-
-
-
-        public float zoom = 1;
 
         public void DeleteSelected()
         {
@@ -273,13 +248,16 @@ namespace ATree
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            if (keyData == Keys.Delete)
+            if (pictureBox1.Focused)
             {
-                DeleteSelected();
-            }
-            if (keyData == Keys.Insert)
-            {
-                AddChildToSelected();
+                if (keyData == Keys.Delete)
+                {
+                    DeleteSelected();
+                }
+                if (keyData == Keys.Insert)
+                {
+                    AddChildToSelected();
+                }
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
@@ -301,17 +279,10 @@ namespace ATree
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("<?xml version=\"1.0\"?>");
 
-            sb.AppendLine($"<root sx=\"{sx.ToString().Replace(",", ".")}\" sy=\"{sy.ToString().Replace(",", ".")}\" zoom=\"{zoom.ToString().Replace(",", ".")}\">");
+            sb.AppendLine($"<root sx=\"{ctx.sx.ToString().Replace(",", ".")}\" sy=\"{ctx.sy.ToString().Replace(",", ".")}\" zoom=\"{ctx.zoom.ToString().Replace(",", ".")}\">");
             foreach (var item in AllItems)
             {
-                sb.AppendLine($"<item id=\"{item.Id}\" name=\"{item.Name}\" progress=\"{item.Progress}\" pos=\"{item.Position.X};{item.Position.Y}\" radius=\"{item.Radius}\">");
-                sb.AppendLine("<childs>");
-                foreach (var citem in item.Childs)
-                {
-                    sb.Append(citem.Id + ";");
-                }
-                sb.AppendLine("</childs>");
-                sb.AppendLine("</item>");
+                item.ToXml(sb);
             }
             sb.AppendLine("</root>");
 
@@ -324,12 +295,21 @@ namespace ATree
             var doc = XDocument.Load(path);
             AllItems.Clear();
             var root = doc.Descendants("root").First();
-            sx = float.Parse(root.Attribute("sx").Value, CultureInfo.InvariantCulture);
-            sy = float.Parse(root.Attribute("sy").Value, CultureInfo.InvariantCulture);
-            zoom = float.Parse(root.Attribute("zoom").Value, CultureInfo.InvariantCulture);
+            ctx.sx = float.Parse(root.Attribute("sx").Value, CultureInfo.InvariantCulture);
+            ctx.sy = float.Parse(root.Attribute("sy").Value, CultureInfo.InvariantCulture);
+            ctx.zoom = float.Parse(root.Attribute("zoom").Value, CultureInfo.InvariantCulture);
 
             foreach (var item in doc.Descendants("item"))
             {
+                if (item.Attribute("type") != null)
+                {
+                    var tp = item.Attribute("type").Value;
+                    if (tp == "todo")
+                    {
+                        AllItems.Add(TodoList.ParseXml(item));
+                        continue;
+                    }
+                }
                 int id = int.Parse(item.Attribute("id").Value);
                 var nm = item.Attribute("name").Value;
                 var progress = int.Parse(item.Attribute("progress").Value);
@@ -337,10 +317,12 @@ namespace ATree
                 var rad = ParseFloat(item.Attribute("radius").Value);
                 AllItems.Add(new AItem() { Id = id, Name = nm, Progress = progress, IsProgress = true, Position = new PointF(pos[0], pos[1]), Radius = rad });
             }
+
             AItem.NewId = AllItems.Max(z => z.Id) + 1;
             foreach (var item in doc.Descendants("item"))
             {
                 int id = int.Parse(item.Attribute("id").Value);
+                if (!item.Descendants("childs").Any()) continue;
                 var val = item.Descendants("childs").First().Value;
                 var aa = val.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
                 var nd = AllItems.First(z => z.Id == id);
@@ -362,7 +344,7 @@ namespace ATree
         }
 
 
-        public float ParseFloat(string str)
+        public static float ParseFloat(string str)
         {
             return float.Parse(str.Replace(",", "."), CultureInfo.InvariantCulture);
         }
@@ -403,6 +385,37 @@ namespace ATree
             s.ShowDialog();
         }
 
+        private void addTodoListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var t = ctx.BackTransform(new PointF(Width / 2, Height / 2));
+            var a = new TodoList() { Name = "new todo1" };
+            a.Position = t;
+            AllItems.Add(a);
+        }
+
+        private void addItemToTodoListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (ctx.selected is TodoList td)
+            {
+                pictureBox1.Controls.Add(tb);
+                tb.Text = "";
+                tb.BringToFront();
+            }
+        }
+
+        private void storeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            int index = 1;
+            var ff = Directory.GetFiles(".", "tree_backup*.xml").ToArray();
+            if (ff.Any())
+            {
+                index = ff.Select(x => int.Parse(Path.GetFileNameWithoutExtension(x).Replace("tree_backup", ""))).Max() + 1;
+            }
+            var pp = "tree_backup" + index + ".xml";
+            File.Copy("tree.xml", pp);
+            MessageBox.Show("Stored to " + pp, Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (Config.QuickSaveOnClosing)
@@ -416,8 +429,17 @@ namespace ATree
 
         }
 
-        public float sx;
-        public float sy;
+
+    }
+
+    public class UiEvent
+    {
+        public bool Handled;
+    }
+
+    public class UiMouseEvent : UiEvent
+    {
+        public PointF Position;
     }
 }
 
