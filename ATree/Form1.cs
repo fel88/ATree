@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dagre;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
@@ -22,8 +23,8 @@ namespace ATree
             {
                 LoadTree("tree.xml");
             }
-          
-            
+
+
             MouseWheel += Form1_MouseWheel;
             pictureBox1.MouseMove += PictureBox1_MouseMove;
 
@@ -36,8 +37,6 @@ namespace ATree
             tb.KeyUp += Tb_KeyUp;
 
             ctx.Init(pictureBox1);
-
-
         }
 
         private void Tb_KeyUp(object sender, KeyEventArgs e)
@@ -62,7 +61,7 @@ namespace ATree
         public void SampleTree()
         {
             AItem Root = new AItem() { Name = "Happy life" };
-            Root.AddChild(new AItem() { Name = "child1", Position = new PointF(200, 0), Progress = 45, IsProgress = true });
+            Root.AddChild(new AItem() { Name = "child1", Position = new PointF(200, 0), Progress = 45, DrawProgress = true });
 
             AllItems.Add(Root);
             AllItems.AddRange(Root.Childs);
@@ -95,6 +94,8 @@ namespace ATree
             }
         }
 
+        PointF startDragPos;
+        PointF startCapturedPos;
         private void PictureBox1_MouseDown(object sender, MouseEventArgs e)
         {
 
@@ -136,6 +137,9 @@ namespace ATree
                 {
                     captured = ctx.hovered;
                     selected = ctx.hovered;
+                    startDragPos = ctx.GetPos();
+                    if (captured != null)
+                        startCapturedPos = captured.Position;
                     propertyGrid1.SelectedObject = captured;
                     isDrag2 = true;
                 }
@@ -164,25 +168,21 @@ namespace ATree
             ctx.sy = (pos.Y / zold + ctx.sy - pos.Y / ctx.zoom);
         }
 
-
-
-  
-
-
-
-     
         public List<AItem> AllItems = new List<AItem>();
         AItem captured = null;
-
 
         PointF lastCenter;
         private void Timer1_Tick(object sender, EventArgs e)
         {
+            ctx.gr.SmoothingMode = SmoothingMode.AntiAlias;
 
             var pos = ctx.GetPos();
+
             if (captured != null && isDrag2)
             {
-                captured.Position = pos;
+                var sx = -startDragPos.X + pos.X;
+                var sy = -startDragPos.Y + pos.Y;
+                captured.Position = new PointF(sx + startCapturedPos.X, sy + startCapturedPos.Y);
             }
 
             #region hovered check
@@ -194,12 +194,12 @@ namespace ATree
                     ctx.hovered = item;
                     break;
                 }
-
             }
 
             #endregion
             UpdateDrawParams();
             ctx.gr.Clear(Color.White);
+            ctx.gr.DrawString("x: " + Math.Round(pos.X, 2) + "   y: " + Math.Round(pos.Y, 2), SystemFonts.DefaultFont, Brushes.Red, 5, 5);
             lastCenter = ctx.Transform(new PointF(pictureBox1.Width / 2, pictureBox1.Height / 2));
             ctx.gr.SmoothingMode = SmoothingMode.AntiAlias;
             foreach (var item in AllItems.Where(z => z.Parents.Count == 0))
@@ -313,9 +313,30 @@ namespace ATree
                 int id = int.Parse(item.Attribute("id").Value);
                 var nm = item.Attribute("name").Value;
                 var progress = int.Parse(item.Attribute("progress").Value);
+
+
                 var pos = (item.Attribute("pos").Value.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(z => ParseFloat(z))).ToArray();
                 var rad = ParseFloat(item.Attribute("radius").Value);
-                AllItems.Add(new AItem() { Id = id, Name = nm, Progress = progress, IsProgress = true, Position = new PointF(pos[0], pos[1]), Radius = rad });
+                var r = new AItem() { Id = id, Name = nm, Progress = progress, DrawProgress = true, Position = new PointF(pos[0], pos[1]), Radius = rad };
+                AllItems.Add(r);
+                if (item.Attribute("autoProgress") != null)
+                {
+                    r.AutoProgress =  bool.Parse(item.Attribute("autoProgress").Value);
+                }
+                if (item.Attribute("drawProgress") != null)
+                {
+                    r.DrawProgress = bool.Parse(item.Attribute("drawProgress").Value);
+                }
+
+                if (item.Attribute("shape") != null)
+                {
+                    r.Shape = (ShapeType)Enum.Parse(typeof(ShapeType), item.Attribute("shape").Value);
+                    if (r.Shape == ShapeType.Rectangle)
+                    {
+                        r.Width = ParseFloat(item.Attribute("width").Value);
+                        r.Height = ParseFloat(item.Attribute("height").Value);
+                    }
+                }
             }
 
             AItem.NewId = AllItems.Max(z => z.Id) + 1;
@@ -360,6 +381,9 @@ namespace ATree
         private void ClearToolStripMenuItem_Click(object sender, EventArgs e)
         {
             AllItems.Clear();
+            var a = new AItem() { Name = "new root1" };
+            AllItems.Add(a);
+            fitAll();
         }
 
         private void AddRootToolStripMenuItem_Click(object sender, EventArgs e)
@@ -424,12 +448,53 @@ namespace ATree
             }
         }
 
-        private void ToolStripButton1_Click(object sender, EventArgs e)
+        private void toolStripButton3_Click(object sender, EventArgs e)
         {
+            DagreInputGraph dg = new DagreInputGraph();
+            foreach (var item in AllItems)
+            {
+                dg.AddNode(item, item.Rect.Width, item.Rect.Height);
+            }
+            foreach (var item in AllItems)
+            {
+                foreach (var ch in item.Childs)
+                {
+                    var nd1 = dg.GetNode(item);
+                    var nd2 = dg.GetNode(ch);
+                    dg.AddEdge(nd1, nd2);
+                }
+            }
 
+
+            dg.Layout();
+
+            foreach (var item in dg.Nodes())
+            {
+                var tag = (item.Tag as AItem);
+                tag.X = item.X;
+                tag.Y = -item.Y;
+            }
+
+            fitAll();
+        }
+
+        void fitAll()
+        {
+            List<PointF> pp = new List<PointF>();
+            foreach (var item in AllItems)
+            {
+                pp.Add(item.Rect.Location);
+                pp.Add(new PointF(item.Rect.Right, item.Rect.Bottom));
+            }
+
+            ctx.FitToPoints(pp.ToArray(), 5);
         }
 
 
+        private void ToolStripButton1_Click(object sender, EventArgs e)
+        {
+            fitAll();
+        }
     }
 
     public class UiEvent
