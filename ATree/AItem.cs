@@ -39,6 +39,14 @@ namespace ATree
             }
         }
 
+        public void Detach()
+        {
+            foreach (var item in Parents)
+            {
+                item.Childs.Remove(this);
+            }
+            Parents.Clear();
+        }
         public static GraphicsPath RoundedRect(RectangleF bounds, float radius)
         {
             float diameter = radius * 2;

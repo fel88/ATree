@@ -51,10 +51,11 @@
             this.addItemToTodoListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton2 = new System.Windows.Forms.ToolStripButton();
-            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripButton3 = new System.Windows.Forms.ToolStripButton();
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
+            this.detachSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.toolStrip1.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
@@ -178,7 +179,8 @@
             this.deleteSelectedToolStripMenuItem,
             this.addRootToolStripMenuItem,
             this.addTodoListToolStripMenuItem,
-            this.addItemToTodoListToolStripMenuItem});
+            this.addItemToTodoListToolStripMenuItem,
+            this.detachSelectedToolStripMenuItem});
             this.toolStripDropDownButton2.Image = ((System.Drawing.Image)(resources.GetObject("toolStripDropDownButton2.Image")));
             this.toolStripDropDownButton2.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripDropDownButton2.Name = "toolStripDropDownButton2";
@@ -241,6 +243,21 @@
             this.toolStripButton2.Text = "Settings";
             this.toolStripButton2.Click += new System.EventHandler(this.ToolStripButton2_Click);
             // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
+            // 
+            // toolStripButton3
+            // 
+            this.toolStripButton3.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripButton3.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton3.Image")));
+            this.toolStripButton3.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButton3.Name = "toolStripButton3";
+            this.toolStripButton3.Size = new System.Drawing.Size(73, 22);
+            this.toolStripButton3.Text = "Auto layout";
+            this.toolStripButton3.Click += new System.EventHandler(this.toolStripButton3_Click);
+            // 
             // tableLayoutPanel1
             // 
             this.tableLayoutPanel1.ColumnCount = 2;
@@ -265,20 +282,12 @@
             this.propertyGrid1.Size = new System.Drawing.Size(194, 582);
             this.propertyGrid1.TabIndex = 1;
             // 
-            // toolStripSeparator2
+            // detachSelectedToolStripMenuItem
             // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
-            // 
-            // toolStripButton3
-            // 
-            this.toolStripButton3.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripButton3.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton3.Image")));
-            this.toolStripButton3.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton3.Name = "toolStripButton3";
-            this.toolStripButton3.Size = new System.Drawing.Size(73, 22);
-            this.toolStripButton3.Text = "Auto layout";
-            this.toolStripButton3.Click += new System.EventHandler(this.toolStripButton3_Click);
+            this.detachSelectedToolStripMenuItem.Name = "detachSelectedToolStripMenuItem";
+            this.detachSelectedToolStripMenuItem.Size = new System.Drawing.Size(185, 22);
+            this.detachSelectedToolStripMenuItem.Text = "Detach selected";
+            this.detachSelectedToolStripMenuItem.Click += new System.EventHandler(this.detachSelectedToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -328,6 +337,7 @@
         private System.Windows.Forms.ToolStripMenuItem restoreToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripButton toolStripButton3;
+        private System.Windows.Forms.ToolStripMenuItem detachSelectedToolStripMenuItem;
     }
 }
 

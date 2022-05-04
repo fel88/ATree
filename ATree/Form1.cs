@@ -23,7 +23,7 @@ namespace ATree
             {
                 LoadTree("tree.xml");
             }
-
+            Load += Form1_Load;
 
             MouseWheel += Form1_MouseWheel;
             pictureBox1.MouseMove += PictureBox1_MouseMove;
@@ -38,7 +38,13 @@ namespace ATree
 
             ctx.Init(pictureBox1);
         }
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            mf = new MessageFilter();
+            Application.AddMessageFilter(mf);
+        }
 
+        MessageFilter mf = null;
         private void Tb_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -69,14 +75,27 @@ namespace ATree
 
         private void PictureBox1_MouseMove(object sender, MouseEventArgs e)
         {
-            pictureBox1.Focus();
+            //pictureBox1.Focus();
         }
 
         private void PictureBox1_MouseUp(object sender, MouseEventArgs e)
         {
+            var temp = captured;
             isDrag = false;
             isDrag2 = false;
             captured = null;
+            if (e.Button == MouseButtons.Left)
+            {
+                var hover = ctx.hovered;
+                if (hover != null && temp != null && temp != hover && !hover.Parents.Contains(temp) && !temp.Parents.Contains(hover))
+                {
+                    if (MessageBox.Show($"Connect {temp.Name} to {hover.Name}?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    {
+                        temp.Detach();
+                        hover.AddChild(temp);
+                    }
+                }
+            }
         }
 
         float startx, starty;
@@ -189,6 +208,7 @@ namespace ATree
             ctx.hovered = null;
             foreach (var item in AllItems)
             {
+                if (item == captured) continue;
                 if (item.IsHovered(pos))
                 {
                     ctx.hovered = item;
@@ -209,10 +229,8 @@ namespace ATree
 
             pictureBox1.Image = ctx.bmp;
         }
+
         public DrawingContext ctx = new DrawingContext();
-
-
-
 
 
         public AItem selected
@@ -321,7 +339,7 @@ namespace ATree
                 AllItems.Add(r);
                 if (item.Attribute("autoProgress") != null)
                 {
-                    r.AutoProgress =  bool.Parse(item.Attribute("autoProgress").Value);
+                    r.AutoProgress = bool.Parse(item.Attribute("autoProgress").Value);
                 }
                 if (item.Attribute("drawProgress") != null)
                 {
@@ -476,6 +494,13 @@ namespace ATree
             }
 
             fitAll();
+        }
+
+        private void detachSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (selected == null) return;
+            if (MessageBox.Show("Detach node: " + selected.Name + "?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            selected.Detach();
         }
 
         void fitAll()
