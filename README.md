@@ -1,4 +1,4 @@
-# ATree
+# ATree: planner
 Editor for mind maps / achievement trees.
 
 <img width="100%" src="imgs/1.png"/>
