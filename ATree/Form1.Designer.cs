@@ -49,13 +49,13 @@
             this.addRootToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addTodoListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addItemToTodoListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.detachSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton2 = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripButton3 = new System.Windows.Forms.ToolStripButton();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
-            this.detachSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.toolStrip1.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
@@ -222,6 +222,13 @@
             this.addItemToTodoListToolStripMenuItem.Text = "Add item to todo list";
             this.addItemToTodoListToolStripMenuItem.Click += new System.EventHandler(this.addItemToTodoListToolStripMenuItem_Click);
             // 
+            // detachSelectedToolStripMenuItem
+            // 
+            this.detachSelectedToolStripMenuItem.Name = "detachSelectedToolStripMenuItem";
+            this.detachSelectedToolStripMenuItem.Size = new System.Drawing.Size(185, 22);
+            this.detachSelectedToolStripMenuItem.Text = "Detach selected";
+            this.detachSelectedToolStripMenuItem.Click += new System.EventHandler(this.detachSelectedToolStripMenuItem_Click);
+            // 
             // toolStripButton1
             // 
             this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
@@ -282,13 +289,6 @@
             this.propertyGrid1.Size = new System.Drawing.Size(194, 582);
             this.propertyGrid1.TabIndex = 1;
             // 
-            // detachSelectedToolStripMenuItem
-            // 
-            this.detachSelectedToolStripMenuItem.Name = "detachSelectedToolStripMenuItem";
-            this.detachSelectedToolStripMenuItem.Size = new System.Drawing.Size(185, 22);
-            this.detachSelectedToolStripMenuItem.Text = "Detach selected";
-            this.detachSelectedToolStripMenuItem.Click += new System.EventHandler(this.detachSelectedToolStripMenuItem_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -299,7 +299,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "ATree: achievements tree";
+            this.Text = "Diagram";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.toolStrip1.ResumeLayout(false);
