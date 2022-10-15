@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml.Linq;
@@ -21,11 +23,15 @@ namespace ATree
             var dt = (DateTime)(x);
             return dt.ToLongDateString();
         };
+            treeListView1.Filter += TreeListView1_Filter;
             treeListView1.CanExpandGetter = (x) =>
             {
                 if (x is CheckListItem c)
                 {
-                    return c.Childs.Count > 0;
+                    if (filteredItems == null)
+                        return c.Childs.Count > 0;
+
+                    return filteredItems.Intersect(c.Childs).Any();
                 }
                 return false;
             };
@@ -33,11 +39,20 @@ namespace ATree
             {
                 if (x is CheckListItem c)
                 {
-                    return c.Childs.ToArray();
+                    if (filteredItems == null)
+                        return c.Childs.ToArray();
+
+                    return filteredItems.Intersect(c.Childs).ToArray();
+
                 }
                 return null;
             };
             LoadChecklist();
+        }
+
+        private void TreeListView1_Filter(object sender, BrightIdeasSoftware.FilterEventArgs e)
+        {
+
         }
 
         private void TreeListView1_CellEditStarting(object sender, BrightIdeasSoftware.CellEditEventArgs e)
@@ -81,6 +96,7 @@ namespace ATree
             {
                 var ci = (treeListView1.SelectedObject as CheckListItem);
                 ci.AddChild(new CheckListItem() { Name = "new1" });
+                treeListView1.RefreshObject(ci);
             }
             UpdateTreeList();
         }
@@ -88,6 +104,7 @@ namespace ATree
         void UpdateTreeList()
         {
             treeListView1.SetObjects(Current.Items);
+            
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
@@ -137,6 +154,10 @@ namespace ATree
                 appendNode(sb, item);
             }
             sb.AppendLine("</root>");
+            if (File.Exists("checklist.xml"))
+            {
+                File.Copy("checklist.xml", "checklist.xml.bak", true);
+            }
             File.WriteAllText("checklist.xml", sb.ToString());
         }
         private void toolStripButton1_Click(object sender, EventArgs e)
@@ -154,6 +175,32 @@ namespace ATree
         private void toolStripButton3_Click(object sender, EventArgs e)
         {
             treeListView1.Font = new System.Drawing.Font(treeListView1.Font.FontFamily, treeListView1.Font.SizeInPoints - 1);
+        }
+
+        CheckListItem[] filteredItems;
+        
+        void updateFilter()
+        {
+            var ff = Current.Flatten().Where(z => z.Name.ToLower().Contains(textBox1.Text.ToLower())).ToArray();
+
+            filteredItems = ff.SelectMany(z => z.GetRootPath()).Distinct().ToArray();
+            if (checkBox1.Checked)
+            {
+                filteredItems = filteredItems.Where(z => z.PlannedFinishDate != null).ToArray();
+            }
+            var tops = filteredItems.Select(z => z.GetRoot()).Distinct().ToArray();
+
+            treeListView1.SetObjects(tops);
+
+        }
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {            
+            updateFilter();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            updateFilter();           
         }
     }
 }

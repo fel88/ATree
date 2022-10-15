@@ -7,6 +7,31 @@ namespace ATree
     public class CheckListItem
     {
         public CheckListItem Parent;
+
+        public CheckListItem GetRoot()
+        {
+            CheckListItem p = this;
+            while (true)
+            {
+                if (p.Parent == null) break;
+                p = p.Parent;
+            }
+            return p;
+        }
+        public CheckListItem[] GetRootPath()
+        {
+            List<CheckListItem> ret = new List<CheckListItem>();
+            CheckListItem p = this;
+
+            while (true)
+            {
+                ret.Add(p);
+                if (p.Parent == null) break;
+                p = p.Parent;
+
+            }
+            return ret.ToArray();
+        }
         public void GetSubTree(List<CheckListItem> l)
         {
             l.AddRange(Childs);

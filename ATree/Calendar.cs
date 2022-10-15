@@ -50,19 +50,24 @@ namespace ATree
                 e.Graphics.DrawRectangle(Pens.Black, xx * cw, yy * ch, cw, ch);
 
                 e.Graphics.DrawString(start.Day.ToString(), SystemFonts.DefaultFont, Brushes.Black, xx * cw, yy * ch);
-                xx++;
+
                 var ww = fl.Where(z => z.PlannedFinishDate != null && start.Date == z.PlannedFinishDate.Value.Date).ToArray();
                 start = start.AddDays(1);
 
-                int yyshift = 10;
+                int yyshift = 15;
                 foreach (var witem in ww)
                 {
+                    var rect = new RectangleF(xx * cw, yy * ch + yyshift, cw, ch - yyshift);
+                  
+                    var ms = e.Graphics.MeasureString(witem.Name, SystemFonts.DefaultFont, new SizeF(cw, ch - yyshift));
+                    e.Graphics.FillRectangle(Brushes.LightBlue, xx * cw, yy * ch + yyshift, rect.Width, ms.Height);
                     e.Graphics.DrawString(witem.Name,
-                        SystemFonts.DefaultFont,
-                        Brushes.Black, new RectangleF(xx * cw, yy * ch + yyshift, cw, ch - yyshift));
-
-                    yyshift += 10;
+                      SystemFonts.DefaultFont,
+                      Brushes.Black, rect);
+                    e.Graphics.DrawRectangle(Pens.Black, xx * cw, yy * ch + yyshift, rect.Width, ms.Height);
+                    yyshift += (int)ms.Height;
                 }
+                xx++;
                 if (xx == 7)
                 {
                     yy++;
