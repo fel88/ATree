@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -32,6 +33,7 @@ namespace ATree
             var n = current;
             int days = DateTime.DaysInMonth(n.Year, n.Month);
             e.Graphics.Clear(Color.White);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             var cw = pictureBox1.Width / 7;
             int ch = pictureBox1.Height / 5;
             int xx = 0;
@@ -47,6 +49,12 @@ namespace ATree
                 {
                     e.Graphics.FillRectangle(Brushes.LightGreen, xx * cw, yy * ch, cw, ch);
                 }
+                if (start.Date == DateTime.Now.Date)
+                {
+                    HatchBrush brush =
+             new HatchBrush(HatchStyle.BackwardDiagonal, Color.Red, Color.Violet);
+                    e.Graphics.FillRectangle(brush, xx * cw, yy * ch, cw, ch);
+                }
                 e.Graphics.DrawRectangle(Pens.Black, xx * cw, yy * ch, cw, ch);
 
                 e.Graphics.DrawString(start.Day.ToString(), SystemFonts.DefaultFont, Brushes.Black, xx * cw, yy * ch);
@@ -58,13 +66,19 @@ namespace ATree
                 foreach (var witem in ww)
                 {
                     var rect = new RectangleF(xx * cw, yy * ch + yyshift, cw, ch - yyshift);
-                  
+
                     var ms = e.Graphics.MeasureString(witem.Name, SystemFonts.DefaultFont, new SizeF(cw, ch - yyshift));
                     e.Graphics.FillRectangle(Brushes.LightBlue, xx * cw, yy * ch + yyshift, rect.Width, ms.Height);
                     e.Graphics.DrawString(witem.Name,
                       SystemFonts.DefaultFont,
                       Brushes.Black, rect);
                     e.Graphics.DrawRectangle(Pens.Black, xx * cw, yy * ch + yyshift, rect.Width, ms.Height);
+                 
+                    if (witem.Status == CheckListStatusTypeEnum.Done)
+                    {
+                        e.Graphics.DrawLine(new Pen(Color.Red, 2), xx * cw, yy * ch + yyshift, xx*cw+rect.Width, yy * ch + yyshift+ms.Height);
+                        e.Graphics.DrawLine(new Pen(Color.Red, 2), xx * cw, yy * ch + yyshift + ms.Height, xx * cw + rect.Width, yy * ch + yyshift);
+                    }
                     yyshift += (int)ms.Height;
                 }
                 xx++;
