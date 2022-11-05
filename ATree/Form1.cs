@@ -1,4 +1,5 @@
 ﻿using Dagre;
+using Springy.Lib;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -189,10 +190,23 @@ namespace ATree
 
         public List<AItem> AllItems = new List<AItem>();
         AItem captured = null;
+        float nodeScaler = 100;
 
         PointF lastCenter;
         private void Timer1_Tick(object sender, EventArgs e)
         {
+            if (allowSpringLayout && dd.graph != null && dd.graph.nodes.Any())
+            {
+                dd.Update();
+                dd.eachNode((p, gg) =>
+                {
+                    var aa = (p.Tag as AItem);
+                    aa.X = nodeScaler * (float)gg.p.x;
+                    aa.Y = nodeScaler * (float)gg.p.y;
+                });
+
+            }
+
             ctx.gr.SmoothingMode = SmoothingMode.AntiAlias;
 
             var pos = ctx.GetPos();
@@ -202,6 +216,16 @@ namespace ATree
                 var sx = -startDragPos.X + pos.X;
                 var sy = -startDragPos.Y + pos.Y;
                 captured.Position = new PointF(sx + startCapturedPos.X, sy + startCapturedPos.Y);
+                if (nodes.Any())
+                {
+                    var fr = nodes.FirstOrDefault(z => z.Tag == captured);
+                    if (fr != null && dd.nodePoints.ContainsKey(fr.id))
+                    {
+                        dd.nodePoints[fr.id].p.x = captured.Position.X / nodeScaler;
+                        dd.nodePoints[fr.id].p.y = captured.Position.X / nodeScaler;
+                    }
+                }
+
             }
 
             #region hovered check
@@ -501,6 +525,41 @@ namespace ATree
             if (selected == null) return;
             if (MessageBox.Show("Detach node: " + selected.Name + "?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
             selected.Detach();
+        }
+        LayoutForceDirected dd = new LayoutForceDirected();
+
+        List<Springy.Lib.Node> nodes = new List<Springy.Lib.Node>();
+        bool allowSpringLayout = false;
+        private void toolStripButton4_Click(object sender, EventArgs e)
+        {
+            if (allowSpringLayout)
+            {
+                allowSpringLayout = false;
+                return;
+            }
+            nodes.Clear();
+            dd = new LayoutForceDirected();
+            Springy.Lib.Graph graph = new Springy.Lib.Graph();
+            dd.graph = graph;
+           
+            allowSpringLayout = true;
+            foreach (var item in AllItems)
+            {
+                var n = graph.newNode(new { label = item.Name });
+                n.Tag = item;
+                dd.nodePoints.Add(n.id, new ForceDirectedPoint(new Vector(item.X/nodeScaler, item.Y / nodeScaler), 1));
+                nodes.Add(n);
+            }
+            foreach (var item in AllItems)
+            {
+                foreach (var ch in item.Childs)
+                {
+                    var nd1 = nodes.First(z => z.Tag == item);
+                    var nd2 = nodes.First(z => z.Tag == ch);
+                    graph.newEdge(nd1, nd2, new { color = "#EB6841" });
+                }
+            }
+
         }
 
         void fitAll()
