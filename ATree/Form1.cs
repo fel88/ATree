@@ -1,4 +1,5 @@
-﻿using Dagre;
+﻿using AutoDialog;
+using Dagre;
 using Springy.Lib;
 using System;
 using System.Collections.Generic;
@@ -151,7 +152,8 @@ namespace ATree
                 foreach (var item in AllItems)
                 {
                     item.Event(ev);
-                    if (ev.Handled) break;
+                    if (ev.Handled)
+                        break;
                 }
                 if (!ev.Handled)
                 {
@@ -159,18 +161,21 @@ namespace ATree
                     selected = ctx.hovered;
                     startDragPos = ctx.GetPos();
                     if (captured != null)
+                    {
                         startCapturedPos = captured.Position;
+                        isDrag2 = true;
+                    }
+                    else
+                    {
+                        isDrag = true;
+                        startx = pos.X;
+                        starty = pos.Y;
+                        origsx = ctx.sx;
+                        origsy = ctx.sy;
+                    }
                     propertyGrid1.SelectedObject = captured;
-                    isDrag2 = true;
+
                 }
-            }
-            if (e.Button == MouseButtons.Right)
-            {
-                isDrag = true;
-                startx = pos.X;
-                starty = pos.Y;
-                origsx = ctx.sx;
-                origsy = ctx.sy;
             }
         }
 
@@ -243,7 +248,7 @@ namespace ATree
             #endregion
             UpdateDrawParams();
             ctx.gr.Clear(Color.White);
-            ctx.gr.DrawString("x: " + Math.Round(pos.X, 2) + "   y: " + Math.Round(pos.Y, 2), SystemFonts.DefaultFont, Brushes.Red, 5, 5);
+            ctx.gr.DrawString($"x: {Math.Round(pos.X, 2)}   y: {Math.Round(pos.Y, 2)}", SystemFonts.DefaultFont, Brushes.Red, 5, 5);
             lastCenter = ctx.Transform(new PointF(pictureBox1.Width / 2, pictureBox1.Height / 2));
             ctx.gr.SmoothingMode = SmoothingMode.AntiAlias;
             foreach (var item in AllItems.Where(z => z.Parents.Count == 0))
@@ -271,17 +276,18 @@ namespace ATree
 
         public void DeleteSelected()
         {
-            if (selected == null) return;
-            if (MessageBox.Show("Delete node: " + selected.Name + "?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            if (selected == null)
+                return;
+
+            if (MessageBox.Show($"Delete node: {selected.Name}?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
             AllItems.Remove(selected);
+
             foreach (var item in selected.Parents)
-            {
                 item.Childs.Remove(selected);
-            }
+
             foreach (var item in selected.Childs)
-            {
                 item.Parents.Remove(selected);
-            }
+
         }
         private void DeleteSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -541,13 +547,13 @@ namespace ATree
             dd = new LayoutForceDirected();
             Springy.Lib.Graph graph = new Springy.Lib.Graph();
             dd.graph = graph;
-           
+
             allowSpringLayout = true;
             foreach (var item in AllItems)
             {
                 var n = graph.newNode(new { label = item.Name });
                 n.Tag = item;
-                dd.nodePoints.Add(n.id, new ForceDirectedPoint(new Vector(item.X/nodeScaler, item.Y / nodeScaler), 1));
+                dd.nodePoints.Add(n.id, new ForceDirectedPoint(new Vector(item.X / nodeScaler, item.Y / nodeScaler), 1));
                 nodes.Add(n);
             }
             foreach (var item in AllItems)
@@ -560,6 +566,95 @@ namespace ATree
                 }
             }
 
+        }
+
+        private void addChildToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AddChildToSelected();
+        }
+
+        private void addRootToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            var pos = ctx.GetPos();
+            var a = new AItem()
+            {
+                Name = "new root1"
+            };
+            a.X = pos.X;
+            a.Y = pos.Y;
+            AllItems.Add(a);
+        }
+
+        private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            DeleteSelected();
+        }
+
+        private void propertiesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (selected == null)
+                return;
+
+            var d = DialogHelpers.StartDialog();
+            var t = selected.GetType();
+            foreach (var item in t.GetProperties())
+            {
+                if (item.PropertyType == typeof(int))
+                {
+                    d.AddNumericField(item.Name, item.Name, (int)item.GetValue(selected), 100000, -100000, 0);
+                }
+                if (item.PropertyType == typeof(bool))
+                {
+                    d.AddBoolField(item.Name, item.Name, (bool)item.GetValue(selected));
+                }
+                if (item.PropertyType == typeof(double))
+                {
+                    d.AddNumericField(item.Name, item.Name, (double)item.GetValue(selected), 100000, -100000);
+                }
+                if (item.PropertyType == typeof(float))
+                {
+                    d.AddNumericField(item.Name, item.Name, (float)item.GetValue(selected), 100000, -100000);
+                }
+                if (item.PropertyType.IsEnum)
+                {
+                    d.AddOptionsField(item.Name, item.Name, Enum.GetNames(item.PropertyType), Enum.GetName(item.PropertyType, item.GetValue(selected)));
+                }
+                if (item.PropertyType == typeof(string))
+                {
+                    d.AddStringField(item.Name, item.Name, (string)item.GetValue(selected));
+                }
+            }
+
+            if (!d.ShowDialog())
+                return;
+
+            foreach (var item in t.GetProperties())
+            {
+                if (item.PropertyType == typeof(int))
+                {
+                    item.SetValue(selected, d.GetIntegerNumericField(item.Name));
+                }
+                if (item.PropertyType == typeof(bool))
+                {
+                    item.SetValue(selected, d.GetBoolField(item.Name));
+                }
+                if (item.PropertyType == typeof(double))
+                {
+                    item.SetValue(selected, d.GetNumericField(item.Name));
+                }
+                if (item.PropertyType == typeof(float))
+                {
+                    item.SetValue(selected, (float)d.GetNumericField(item.Name));
+                }
+                if (item.PropertyType == typeof(string))
+                {
+                    item.SetValue(selected, d.GetStringField(item.Name));
+                }
+                if (item.PropertyType.IsEnum)
+                {
+                    item.SetValue(selected, Enum.Parse(item.PropertyType, d.GetOptionsField(item.Name)));
+                }
+            }
         }
 
         void fitAll()
@@ -579,16 +674,6 @@ namespace ATree
         {
             fitAll();
         }
-    }
-
-    public class UiEvent
-    {
-        public bool Handled;
-    }
-
-    public class UiMouseEvent : UiEvent
-    {
-        public PointF Position;
     }
 }
 
